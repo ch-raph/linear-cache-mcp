@@ -18,7 +18,7 @@ function textResult(value) {
 }
 
 export function createServer() {
-  const server = new McpServer({ name: "dor-linear-cache", version: "0.1.0" });
+  const server = new McpServer({ name: "linear-cache-mcp", version: "0.1.0" });
 
   server.tool("linear_cache_status", "Show Linear cache freshness, counts, and budget mode.", {}, async () => textResult(await cacheStatus({ budgetStatus, ageMinutes })));
 
