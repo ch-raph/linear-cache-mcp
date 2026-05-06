@@ -1,0 +1,16 @@
+{
+  "name": "linear-cache-mcp-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Workspace for a cache-first Linear MCP server, optional Pi extension, and agent skill templates.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "npm --workspace packages/linear-cache-mcp test",
+    "smoke": "npm --workspace packages/linear-cache-mcp run smoke"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "linear-cache": {
+      "command": "node",
+      "args": [
+        "/absolute/path/to/linear-cache-mcp/packages/linear-cache-mcp/src/server.mjs"
+      ],
+      "env": {
+        "LINEAR_API_KEY": "lin_api_...",
+        "LINEAR_TEAM_ID": "your-linear-team-id",
+        "LINEAR_CACHE_ROOT": "/absolute/path/to/project/.agent/linear-cache"
+      }
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "linear-cache-mcp",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Cache-first Linear MCP server for agent workflows.",
+  "bin": {
+    "linear-cache-mcp": "./src/server.mjs"
+  },
+  "scripts": {
+    "start": "node ./src/server.mjs",
+    "smoke": "node ./src/server.mjs --stdio-smoke",
+    "test": "node --test"
+  },
+  "keywords": [
+    "linear",
+    "mcp",
+    "model-context-protocol",
+    "agent",
+    "cache"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.4",
+    "dotenv": "^16.4.7",
+    "zod": "^3.25.76"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
