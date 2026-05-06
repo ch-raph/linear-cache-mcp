@@ -7,9 +7,10 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 export { BUDGET_THRESHOLDS, CACHE_ROOT, LATEST_DIR, MANIFEST_PATH, LEDGER_PATH } from "./config.mjs";
 export { ensureDirs, readEntityFile, writeEntityFile, readManifest, updateManifest, patchEntityById } from "./cache-store.mjs";
 export { appendLedger, budgetStatus } from "./ledger.mjs";
-export { normalizeIssue, normalizeProject } from "./normalizers.mjs";
+export { normalizeIssue, normalizeProject, normalizeProjectUpdate } from "./normalizers.mjs";
 export { searchCachedIssues, getCachedIssue, liveIssue, getIssue, syncIssues, updateIssue, moveIssue, commentIssue, createIssue } from "./issue-service.mjs";
 export { listCachedProjects, syncProjects } from "./project-service.mjs";
+export { PROJECT_UPDATE_HEALTH_VALUES, resolveCachedProject, liveProject, listCachedProjectUpdates, listProjectUpdates, fetchProjectUpdates, createProjectUpdate } from "./project-update-service.mjs";
 export { createServer } from "./tools.mjs";
 
 import { CACHE_ROOT } from "./config.mjs";

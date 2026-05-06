@@ -81,12 +81,14 @@ Tool names use underscores for MCP compatibility:
 - `linear_cache_search_issues`
 - `linear_cache_get_issue`
 - `linear_cache_list_projects`
+- `linear_cache_list_project_updates`
 - `linear_cache_sync_incremental`
 - `linear_cache_sync_full`
 - `linear_cache_create_issue`
 - `linear_cache_update_issue`
 - `linear_cache_comment_issue`
 - `linear_cache_move_issue`
+- `linear_cache_create_project_update`
 
 ## Source layout
 
@@ -95,9 +97,10 @@ Tool names use underscores for MCP compatibility:
 - `src/cache-store.mjs` — JSON cache files, manifest handling, and entity patching.
 - `src/ledger.mjs` — request ledger and hourly budget status.
 - `src/linear-client.mjs` — Linear GraphQL wrapper and request logging.
-- `src/normalizers.mjs` — Linear issue/project normalization.
+- `src/normalizers.mjs` — Linear issue/project/project-update normalization.
 - `src/issue-service.mjs` — issue cache search, live fetch, sync, and write-through mutations.
 - `src/project-service.mjs` — project cache search and sync.
+- `src/project-update-service.mjs` — Project Update cache listing, targeted refresh, and write-through creation.
 - `src/tools.mjs` — MCP tool registration.
 
 ## Local state
@@ -105,13 +108,16 @@ Tool names use underscores for MCP compatibility:
 - `.agent/linear-cache/manifest.json`
 - `.agent/linear-cache/latest/issues.json`
 - `.agent/linear-cache/latest/projects.json`
+- `.agent/linear-cache/latest/project_updates.json`
 - `.agent/linear-cache/request-ledger.jsonl`
 
 ## Write safety
 
 Write tools live-fetch relevant entities, perform the mutation, then refresh/patch the cache and append request ledger entries.
 
-If `LINEAR_API_KEY` is missing, read-only cache tools still work; live sync and writes return clear errors.
+Project Update tools accept either `projectId` or exact `projectName`. Exact-name lookup uses cached projects and rejects missing or ambiguous names; live refresh/create then fetches the resolved project before calling Linear. Optional Project Update `health` values are `onTrack`, `atRisk`, or `offTrack`.
+
+If `LINEAR_API_KEY` is missing, read-only cache tools still work; live sync, live Project Update refresh, and writes return clear errors.
 
 ## Publishing notes
 

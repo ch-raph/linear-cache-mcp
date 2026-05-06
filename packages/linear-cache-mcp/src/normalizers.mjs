@@ -28,3 +28,19 @@ export function normalizeProject(node) {
     url: node.url
   };
 }
+
+export function normalizeProjectUpdate(node, projectHint = {}) {
+  const project = node.project ?? projectHint ?? {};
+  const creator = node.creator ?? node.user ?? node.author ?? null;
+  return {
+    id: node.id,
+    projectId: project.id ?? node.projectId ?? projectHint.id ?? projectHint.projectId ?? null,
+    projectName: project.name ?? node.projectName ?? projectHint.name ?? projectHint.projectName ?? null,
+    body: node.body ?? node.content ?? node.description ?? null,
+    health: node.health ?? node.status ?? null,
+    createdAt: node.createdAt,
+    updatedAt: node.updatedAt,
+    url: node.url,
+    creator: creator ? (creator.displayName ?? creator.name ?? creator.email ?? creator.id ?? null) : null
+  };
+}

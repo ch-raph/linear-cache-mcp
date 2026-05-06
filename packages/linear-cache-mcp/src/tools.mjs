@@ -5,6 +5,7 @@ import { cacheStatus, readManifest, nowIso, updateManifest } from "./cache-store
 import { budgetStatus } from "./ledger.mjs";
 import { searchCachedIssues, getIssue, syncIssues, updateIssue, moveIssue, commentIssue, createIssue } from "./issue-service.mjs";
 import { listCachedProjects, syncProjects } from "./project-service.mjs";
+import { PROJECT_UPDATE_HEALTH_VALUES, createProjectUpdate, listProjectUpdates } from "./project-update-service.mjs";
 
 function ageMinutes(iso) {
   if (!iso) return null;
@@ -43,6 +44,13 @@ export function createServer() {
     status: z.string().optional(),
     limit: z.number().int().min(1).max(100).default(25)
   }, async ({ query, status, limit }) => textResult(await listCachedProjects({ query, status, limit })));
+
+  server.tool("linear_cache_list_project_updates", "List recent Linear Project Updates from cache; optionally targeted live-refresh a project.", {
+    projectId: z.string().optional(),
+    projectName: z.string().optional(),
+    limit: z.number().int().min(1).max(100).default(25),
+    liveRefresh: z.boolean().default(false)
+  }, async ({ projectId, projectName, limit, liveRefresh }) => textResult({ ...(await listProjectUpdates({ projectId, projectName, limit, liveRefresh })), ...(liveRefresh ? { budget: await budgetStatus() } : {}) }));
 
   server.tool("linear_cache_sync_incremental", "Sync issues/projects updated since manifest last incremental sync, budget-gated.", {
     since: z.string().datetime().optional(),
@@ -97,6 +105,13 @@ export function createServer() {
     stateId: z.string().optional(),
     labelIds: z.array(z.string()).optional()
   }, async (params) => textResult({ ...(await createIssue(params)), budget: await budgetStatus() }));
+
+  server.tool("linear_cache_create_project_update", "Live-fetch a Linear project, create a Project Update, then patch cache.", {
+    projectId: z.string().optional(),
+    projectName: z.string().optional(),
+    body: z.string().min(1),
+    health: z.enum(PROJECT_UPDATE_HEALTH_VALUES).optional()
+  }, async (params) => textResult({ ...(await createProjectUpdate(params)), budget: await budgetStatus() }));
 
   return server;
 }

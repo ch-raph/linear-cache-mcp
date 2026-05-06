@@ -59,21 +59,26 @@ export async function updateManifest(patch = {}) {
   return next;
 }
 
+function entityStatKey(name) {
+  if (name === "project_updates") return "projectUpdates";
+  return name;
+}
+
 export async function patchEntityById(name, item) {
   const file = await readEntityFile(name);
   const items = Array.isArray(file.items) ? file.items : [];
-  const idx = items.findIndex(x => x.id === item.id || x.linearId === item.linearId);
+  const idx = items.findIndex(x => x.id === item.id || (item.linearId && x.linearId === item.linearId));
   if (idx >= 0) items[idx] = { ...items[idx], ...item };
   else items.unshift(item);
   await writeEntityFile(name, { ...file, patchedAt: nowIso(), items });
-  await updateManifest({ syncState: { lastWriteBackAt: nowIso() }, entityStats: { [name]: items.length } });
+  await updateManifest({ syncState: { lastWriteBackAt: nowIso() }, entityStats: { [entityStatKey(name)]: items.length } });
 }
 
 export async function cacheStatus({ budgetStatus, ageMinutes }) {
   await ensureDirs();
   const manifest = await readManifest();
   const files = {};
-  for (const name of ["teams", "users", "issue_labels", "issue_statuses", "cycles", "projects", "issues"]) {
+  for (const name of ["teams", "users", "issue_labels", "issue_statuses", "cycles", "projects", "issues", "project_updates"]) {
     const data = await readEntityFile(name);
     files[name] = { items: data.items?.length ?? 0, capturedAt: data.capturedAt ?? null, ageMinutes: ageMinutes(data.capturedAt) };
   }

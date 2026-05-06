@@ -29,7 +29,7 @@ async function resetCache() {
     syncPolicyVersion: "1.0.0",
     generatedAt: "2026-05-06T18:00:00.000Z",
     freshnessTargets: { planningReadMaxAgeMinutes: 120, incrementalSyncEveryMinutes: 30, fullReconciliationEveryHours: 24 },
-    entityStats: { issues: 3, projects: 2 },
+    entityStats: { issues: 3, projects: 2, projectUpdates: 2 },
     syncState: { lastFullSyncAt: "2026-05-06T17:00:00.000Z", lastIncrementalSyncAt: "2026-05-06T18:00:00.000Z" },
     writeSafety: { liveRefetchRequiredBeforeMutation: true, patchCacheAfterMutation: true }
   });
@@ -48,6 +48,14 @@ async function resetCache() {
     items: [
       { id: "proj-knowledge", name: "Knowledge Base", status: "Active", statusType: "started", labels: ["Example Commitment"], updatedAt: "2026-05-06T16:00:00.000Z" },
       { id: "proj-ops", name: "Operations", status: "Backlog", statusType: "unstarted", labels: [], updatedAt: "2026-05-06T12:00:00.000Z" }
+    ]
+  });
+  await writeJson("latest/project_updates.json", {
+    capturedAt: "2026-05-06T18:03:00.000Z",
+    source: "test",
+    items: [
+      { id: "upd-2", projectId: "proj-knowledge", projectName: "Knowledge Base", body: "Second project update", health: "onTrack", createdAt: "2026-05-06T17:00:00.000Z", updatedAt: "2026-05-06T17:00:00.000Z", url: "https://linear.app/example/project-upd-2", creator: "Alex Example" },
+      { id: "upd-1", projectId: "proj-ops", projectName: "Operations", body: "Ops update", health: null, createdAt: "2026-05-06T16:00:00.000Z", updatedAt: "2026-05-06T16:00:00.000Z" }
     ]
   });
   await fs.writeFile(path.join(tempRoot, "request-ledger.jsonl"), "", "utf8");
@@ -143,6 +151,7 @@ test("cacheStatus reports manifest, entity counts, and budget without live Linea
   assert.equal(status.manifest.entityStats.issues, 3);
   assert.equal(status.files.issues.items, 3);
   assert.equal(status.files.projects.items, 2);
+  assert.equal(status.files.project_updates.items, 2);
   assert.equal(status.budget.usedThisHour, 0);
 });
 
@@ -160,12 +169,43 @@ test("patchEntityById updates or inserts entities and updates manifest write-bac
   assert.equal(issues.items.length, 4);
   assert.equal(issues.items[0].id, "LIN-199");
 
+  await mod.patchEntityById("project_updates", { id: "upd-3", projectId: "proj-knowledge", body: "Inserted project update" });
+
   const manifest = await readJson("manifest.json");
   assert.equal(manifest.entityStats.issues, 4);
+  assert.equal(manifest.entityStats.projectUpdates, 3);
   assert.ok(manifest.syncState.lastWriteBackAt);
 });
 
-test("normalizeIssue and normalizeProject tolerate missing optional nested data", async () => {
+test("listCachedProjectUpdates filters by exact cached project and tolerates missing cache file", async () => {
+  await resetCache();
+
+  const byName = await mod.listCachedProjectUpdates({ projectName: "Knowledge Base", limit: 10 });
+  assert.equal(byName.source, "cache");
+  assert.equal(byName.count, 1);
+  assert.equal(byName.items[0].id, "upd-2");
+
+  const all = await mod.listCachedProjectUpdates({ limit: 1 });
+  assert.equal(all.count, 2);
+  assert.equal(all.items.length, 1);
+
+  await fs.rm(path.join(tempRoot, "latest", "project_updates.json"));
+  const missing = await mod.listCachedProjectUpdates({ limit: 10 });
+  assert.equal(missing.count, 0);
+  assert.deepEqual(missing.items, []);
+});
+
+test("resolveCachedProject requires exact unambiguous project names", async () => {
+  await resetCache();
+
+  const resolved = await mod.resolveCachedProject({ projectName: "Knowledge Base" });
+  assert.equal(resolved.project.id, "proj-knowledge");
+
+  await assert.rejects(() => mod.resolveCachedProject({ projectName: "Missing" }), /No cached project found/);
+  await assert.rejects(() => mod.resolveCachedProject({ projectId: "a", projectName: "Knowledge Base" }), /either projectId or projectName/);
+});
+
+test("normalizeIssue, normalizeProject, and normalizeProjectUpdate tolerate missing optional nested data", async () => {
   const issue = mod.normalizeIssue({ id: "uuid", identifier: "LIN-1", title: "Title", labels: { nodes: [{ name: "Feature" }] } });
   assert.deepEqual(issue, {
     id: "LIN-1",
@@ -185,6 +225,25 @@ test("normalizeIssue and normalizeProject tolerate missing optional nested data"
   const project = mod.normalizeProject({ id: "proj", name: "Project", labels: { nodes: [] } });
   assert.equal(project.status, null);
   assert.deepEqual(project.labels, []);
+
+  const projectUpdate = mod.normalizeProjectUpdate({ id: "upd", body: "Body", project: { id: "proj", name: "Project" }, user: { displayName: "Alex Example" } });
+  assert.deepEqual(projectUpdate, {
+    id: "upd",
+    projectId: "proj",
+    projectName: "Project",
+    body: "Body",
+    health: null,
+    createdAt: undefined,
+    updatedAt: undefined,
+    url: undefined,
+    creator: "Alex Example"
+  });
+});
+
+test("createServer registers Project Update MCP tools", async () => {
+  const server = mod.createServer();
+  assert.ok(server._registeredTools.linear_cache_list_project_updates);
+  assert.ok(server._registeredTools.linear_cache_create_project_update);
 });
 
 test("live sync/write path fails clearly without LINEAR_API_KEY", async () => {
