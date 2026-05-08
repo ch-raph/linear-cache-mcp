@@ -223,6 +223,11 @@ Project Update tools accept either `projectId` or exact `projectName`. Exact-nam
 
 If `LINEAR_API_KEY` is missing, read-only cache tools still work; live sync, live Project Update refresh, and writes return clear errors.
 
+## Links
+
+- [GitHub](https://github.com/ch-raph/linear-cache-mcp)
+- [npm](https://www.npmjs.com/package/linear-cache-mcp)
+
 ## Publishing notes
 
 - Keep API keys, team IDs, and cache roots in environment/config only.

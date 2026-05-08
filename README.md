@@ -1,5 +1,8 @@
 # Linear Cache MCP
 
+[![npm version](https://img.shields.io/npm/v/linear-cache-mcp)](https://www.npmjs.com/package/linear-cache-mcp)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+
 A cache-first Model Context Protocol (MCP) server for Linear, designed for coding agents that need fast Linear context without burning through API request budgets.
 
 ## Packages
