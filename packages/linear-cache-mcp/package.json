@@ -4,9 +4,7 @@
   "private": false,
   "type": "module",
   "description": "Cache-first Linear MCP server for agent workflows.",
-  "bin": {
-    "linear-cache-mcp": "./src/server.mjs"
-  },
+  "bin": "./cli.js",
   "scripts": {
     "start": "node ./src/server.mjs",
     "smoke": "node ./src/server.mjs --stdio-smoke",
