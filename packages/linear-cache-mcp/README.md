@@ -35,16 +35,18 @@ export LINEAR_CACHE_ROOT="/path/to/project/.agent/linear-cache"
 
 ### Option C: MCP client config
 
-Put secrets in the MCP host's env/secret config, not in tracked source. Conceptual example:
+Put secrets in the MCP host's env/secret config, not in tracked source. See `examples/` for ready-to-copy templates.
+
+Generic MCP client example:
 
 ```json
 {
   "mcpServers": {
     "linear-cache": {
-      "command": "node",
-      "args": ["/absolute/path/to/linear-cache-mcp/packages/linear-cache-mcp/src/server.mjs"],
+      "command": "npx",
+      "args": ["-y", "linear-cache-mcp"],
       "env": {
-        "LINEAR_API_KEY": "lin_api_...",
+        "LINEAR_API_KEY": "${LINEAR_API_KEY}",
         "LINEAR_TEAM_ID": "your-linear-team-id"
       }
     }
@@ -62,6 +64,108 @@ Run tests:
 
 ```bash
 npm test
+```
+
+## Pi Coding Agent Setup
+
+[Pi](https://github.com/mariozechner/pi-coding-agent) is a terminal-based coding agent.
+This server integrates via [`pi-mcp-adapter`](https://www.npmjs.com/package/pi-mcp-adapter),
+which reads a `.mcp.json` file in the project root and bridges MCP servers into Pi's tool system.
+
+### 1. Install the adapter (once per machine)
+
+```bash
+pi extensions install pi-mcp-adapter
+```
+
+### 2. Create `.mcp.json` in your project root
+
+Copy the template from [examples/pi-project/](../../../examples/pi-project/.mcp.json.example)
+or use one of the patterns below.
+
+**If published to npm** (recommended for multi-device use):
+
+```json
+{
+  "settings": { "toolPrefix": "none" },
+  "mcpServers": {
+    "linear-cache": {
+      "command": "npx",
+      "args": ["-y", "linear-cache-mcp"],
+      "env": {
+        "LINEAR_API_KEY": "${LINEAR_API_KEY}",
+        "LINEAR_TEAM_ID": "your-linear-team-id"
+      },
+      "directTools": true,
+      "lifecycle": "lazy"
+    }
+  }
+}
+```
+
+**If running from a local checkout** (development, sibling repo):
+
+```json
+{
+  "settings": { "toolPrefix": "none" },
+  "mcpServers": {
+    "linear-cache": {
+      "command": "node",
+      "args": ["../linear-cache-mcp/packages/linear-cache-mcp/src/server.mjs"],
+      "env": {
+        "LINEAR_API_KEY": "${LINEAR_API_KEY}",
+        "LINEAR_TEAM_ID": "your-linear-team-id"
+      },
+      "directTools": true,
+      "lifecycle": "lazy"
+    }
+  }
+}
+```
+
+> **Important:** Add `.mcp.json` to your project's `.gitignore` — it contains your API key.
+> Commit `.mcp.json.example` (without the key) instead as a template.
+
+### 3. Set your API key
+
+Export it in your shell profile (`.zshrc`, `.bashrc`, etc.):
+
+```bash
+export LINEAR_API_KEY="lin_api_..."
+```
+
+Or create a `.env` file in the project root (also gitignored):
+
+```bash
+LINEAR_API_KEY=lin_api_...
+LINEAR_TEAM_ID=your-linear-team-id
+```
+
+### 4. Add the skill (optional but recommended)
+
+Copy `skills/linear-ops/` into your project's `.agents/skills/linear-ops/`.
+Agents will load it automatically for Linear tasks.
+
+### 5. Verify
+
+Open Pi in your project. The 13 `linear_cache_*` tools should appear.
+Run `linear_cache_status` to confirm the server is connected and cache is initialized.
+
+### Project structure after setup
+
+```
+your-project/
+  .mcp.json                  ← gitignored (has API key)
+  .mcp.json.example          ← tracked template
+  .agent/linear-cache/       ← auto-created by server
+    manifest.json
+    latest/
+      issues.json
+      projects.json
+      ...
+    request-ledger.jsonl
+  .agents/skills/linear-ops/ ← optional skill
+    SKILL.md
 ```
 
 ## MCP command

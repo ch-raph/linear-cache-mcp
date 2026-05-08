@@ -1,4 +1,7 @@
 {
+  "settings": {
+    "toolPrefix": "none"
+  },
   "mcpServers": {
     "linear-cache": {
       "command": "npx",
@@ -6,7 +9,9 @@
       "env": {
         "LINEAR_API_KEY": "${LINEAR_API_KEY}",
         "LINEAR_TEAM_ID": "your-linear-team-id"
-      }
+      },
+      "directTools": true,
+      "lifecycle": "lazy"
     }
   }
 }
