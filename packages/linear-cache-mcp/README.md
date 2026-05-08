@@ -1,10 +1,13 @@
 # Linear Cache MCP
 
-Cache-first MCP server for Linear access. It reduces broad Linear reads, tracks local request budget, and provides write-through mutation tools for agent workflows.
+[![npm version](https://img.shields.io/npm/v/linear-cache-mcp)](https://www.npmjs.com/package/linear-cache-mcp)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/ch-raph/linear-cache-mcp/blob/main/LICENSE)
 
-## Status
+Cache-first MCP server for [Linear](https://linear.app/). Reduces API usage by serving reads from a local JSON cache, tracks a request budget, and provides write-through mutation tools for coding agent workflows.
 
-V1 is JSON-cache based and uses `.agent/linear-cache/latest/*.json`. SQLite can be added later if querying/merging becomes complex.
+## Why this exists
+
+Linear's API has rate limits. Coding agents that query Linear for every read can exhaust them quickly. This server keeps a local mirror of your team's issues and projects, serves reads from cache when fresh, and only calls the Linear API for writes or when the cache is stale.
 
 ## Setup
 
@@ -13,31 +16,27 @@ cd packages/linear-cache-mcp
 npm install
 ```
 
-Set Linear auth and team info using one of these methods.
+Set Linear auth using one of these methods.
 
-### Option A: local `.env` file
+### Option A: `.env` file
 
 ```bash
 cp .env.example .env
-$EDITOR .env
+# Edit .env — add your LINEAR_API_KEY and LINEAR_TEAM_ID
 ```
 
 `.env` is gitignored. Do not commit real API keys.
 
-### Option B: shell environment
+### Option B: Environment variables
 
 ```bash
 export LINEAR_API_KEY="lin_api_..."
 export LINEAR_TEAM_ID="your-linear-team-id"
-# optional; defaults to repo root auto-detection
-export LINEAR_CACHE_ROOT="/path/to/project/.agent/linear-cache"
 ```
 
 ### Option C: MCP client config
 
-Put secrets in the MCP host's env/secret config, not in tracked source. See `examples/` for ready-to-copy templates.
-
-Generic MCP client example:
+Pass secrets through your MCP host's env config. See [`examples/`](https://github.com/ch-raph/linear-cache-mcp/tree/main/examples) for ready-to-copy templates.
 
 ```json
 {
@@ -72,7 +71,7 @@ npm test
 This server integrates via [`pi-mcp-adapter`](https://www.npmjs.com/package/pi-mcp-adapter),
 which reads a `.mcp.json` file in the project root and bridges MCP servers into Pi's tool system.
 
-### 1. Install the adapter (once per machine)
+### 1. Install the adapter (once)
 
 ```bash
 pi extensions install pi-mcp-adapter
@@ -80,10 +79,7 @@ pi extensions install pi-mcp-adapter
 
 ### 2. Create `.mcp.json` in your project root
 
-Copy the template from [examples/pi-project/](../../../examples/pi-project/.mcp.json.example)
-or use one of the patterns below.
-
-**If published to npm** (recommended for multi-device use):
+Copy the template from [`examples/pi-project/`](https://github.com/ch-raph/linear-cache-mcp/tree/main/examples/pi-project) or use:
 
 ```json
 {
@@ -103,29 +99,6 @@ or use one of the patterns below.
 }
 ```
 
-**If running from a local checkout** (development, sibling repo):
-
-```json
-{
-  "settings": { "toolPrefix": "none" },
-  "mcpServers": {
-    "linear-cache": {
-      "command": "node",
-      "args": ["../linear-cache-mcp/packages/linear-cache-mcp/src/server.mjs"],
-      "env": {
-        "LINEAR_API_KEY": "${LINEAR_API_KEY}",
-        "LINEAR_TEAM_ID": "your-linear-team-id"
-      },
-      "directTools": true,
-      "lifecycle": "lazy"
-    }
-  }
-}
-```
-
-> **Important:** Add `.mcp.json` to your project's `.gitignore` — it contains your API key.
-> Commit `.mcp.json.example` (without the key) instead as a template.
-
 ### 3. Set your API key
 
 Export it in your shell profile (`.zshrc`, `.bashrc`, etc.):
@@ -134,14 +107,9 @@ Export it in your shell profile (`.zshrc`, `.bashrc`, etc.):
 export LINEAR_API_KEY="lin_api_..."
 ```
 
-Or create a `.env` file in the project root (also gitignored):
+Or use a `.env` file in the project root (also gitignored).
 
-```bash
-LINEAR_API_KEY=lin_api_...
-LINEAR_TEAM_ID=your-linear-team-id
-```
-
-### 4. Add the skill (optional but recommended)
+### 4. Add the skill (optional)
 
 Copy `skills/linear-ops/` into your project's `.agents/skills/linear-ops/`.
 Agents will load it automatically for Linear tasks.
@@ -149,7 +117,7 @@ Agents will load it automatically for Linear tasks.
 ### 5. Verify
 
 Open Pi in your project. The 13 `linear_cache_*` tools should appear.
-Run `linear_cache_status` to confirm the server is connected and cache is initialized.
+Run `linear_cache_status` to confirm the server is connected and the cache is initialized.
 
 ### Project structure after setup
 
@@ -162,75 +130,83 @@ your-project/
     latest/
       issues.json
       projects.json
-      ...
     request-ledger.jsonl
   .agents/skills/linear-ops/ ← optional skill
     SKILL.md
 ```
 
-## MCP command
-
-Use this command from MCP-compatible clients:
-
-```bash
-node /absolute/path/to/linear-cache-mcp/packages/linear-cache-mcp/src/server.mjs
-```
-
 ## Tools
 
-Tool names use underscores for MCP compatibility:
+All 13 tools use underscore naming for MCP compatibility:
 
-- `linear_cache_status`
-- `linear_cache_budget_status`
-- `linear_cache_search_issues`
-- `linear_cache_get_issue`
-- `linear_cache_list_projects`
-- `linear_cache_list_project_updates`
-- `linear_cache_sync_incremental`
-- `linear_cache_sync_full`
+### Read (cache-only, 0 API cost)
+- `linear_cache_status` — cache freshness, file counts, budget mode
+- `linear_cache_budget_status` — current-hour request usage
+- `linear_cache_search_issues` — search by text, status, label, assignee, project
+- `linear_cache_get_issue` — get by ID (optionally `liveRefresh: true`)
+- `linear_cache_list_projects` — list/search projects
+- `linear_cache_list_project_updates` — list project updates
+
+### Write / Sync (calls Linear API)
+- `linear_cache_sync_incremental` — sync since last update (budget-gated)
+- `linear_cache_sync_full` — full reconciliation (budget-gated)
 - `linear_cache_create_issue`
 - `linear_cache_update_issue`
-- `linear_cache_comment_issue`
 - `linear_cache_move_issue`
+- `linear_cache_comment_issue`
 - `linear_cache_create_project_update`
 
-## Source layout
+## Workflow
 
-- `src/server.mjs` — thin executable entrypoint and compatibility exports for tests/tools.
-- `src/config.mjs` — paths, Linear endpoint, defaults, and budget thresholds.
-- `src/cache-store.mjs` — JSON cache files, manifest handling, and entity patching.
-- `src/ledger.mjs` — request ledger and hourly budget status.
-- `src/linear-client.mjs` — Linear GraphQL wrapper and request logging.
-- `src/normalizers.mjs` — Linear issue/project/project-update normalization.
-- `src/issue-service.mjs` — issue cache search, live fetch, sync, and write-through mutations.
-- `src/project-service.mjs` — project cache search and sync.
-- `src/project-update-service.mjs` — Project Update cache listing, targeted refresh, and write-through creation.
-- `src/tools.mjs` — MCP tool registration.
+1. **Cache-first reads** — `linear_cache_search_issues`, `linear_cache_get_issue`, etc. cost nothing
+2. **Check budget** before live operations — `linear_cache_budget_status`
+3. **Live-fetch before writes** — use `liveRefresh: true` on get before mutating
+4. **Sync when stale** — `linear_cache_sync_incremental` if the cache is >2 hours old
+5. **Write-through** — after any mutation, the cache is automatically patched
 
-## Local state
+### Budget thresholds
 
-- `.agent/linear-cache/manifest.json`
-- `.agent/linear-cache/latest/issues.json`
-- `.agent/linear-cache/latest/projects.json`
-- `.agent/linear-cache/latest/project_updates.json`
-- `.agent/linear-cache/request-ledger.jsonl`
+| Requests/hour | Mode |
+|---|---|
+| <900 | Normal |
+| 900–1200 | Avoid broad refreshes |
+| 1200–1400 | Targeted reads/writes only |
+| >1400 | Ask before any Linear call |
 
 ## Write safety
 
 Write tools live-fetch relevant entities, perform the mutation, then refresh/patch the cache and append request ledger entries.
 
-Project Update tools accept either `projectId` or exact `projectName`. Exact-name lookup uses cached projects and rejects missing or ambiguous names; live refresh/create then fetches the resolved project before calling Linear. Optional Project Update `health` values are `onTrack`, `atRisk`, or `offTrack`.
+Project Update tools accept either `projectId` or exact `projectName`. Exact-name lookup uses cached projects and rejects missing or ambiguous names. Optional Project Update `health` values are `onTrack`, `atRisk`, or `offTrack`.
 
-If `LINEAR_API_KEY` is missing, read-only cache tools still work; live sync, live Project Update refresh, and writes return clear errors.
+If `LINEAR_API_KEY` is missing, read-only cache tools still work; live sync and writes return clear errors.
+
+## Local state
+
+The server stores cache data in `.agent/linear-cache/` (auto-created, gitignored):
+
+- `manifest.json` — sync metadata and freshness tracking
+- `latest/issues.json` — cached issues
+- `latest/projects.json` — cached projects
+- `latest/project_updates.json` — cached project updates
+- `request-ledger.jsonl` — local API request accounting
+
+## Source layout
+
+- `src/server.mjs` — executable entrypoint
+- `src/config.mjs` — paths, Linear endpoint, defaults, budget thresholds
+- `src/cache-store.mjs` — JSON cache files, manifest, entity patching
+- `src/ledger.mjs` — request ledger and hourly budget
+- `src/linear-client.mjs` — Linear GraphQL wrapper
+- `src/normalizers.mjs` — issue/project/project-update normalization
+- `src/issue-service.mjs` — issue cache search, live fetch, sync, write-through
+- `src/project-service.mjs` — project cache search and sync
+- `src/project-update-service.mjs` — Project Update cache, refresh, creation
+- `src/tools.mjs` — MCP tool registration
 
 ## Links
 
 - [GitHub](https://github.com/ch-raph/linear-cache-mcp)
 - [npm](https://www.npmjs.com/package/linear-cache-mcp)
-
-## Publishing notes
-
-- Keep API keys, team IDs, and cache roots in environment/config only.
-- Keep project-specific workflow rules in project skills/docs, not MCP core logic.
-- Keep `.env.example` generic and safe; never commit `.env`.
-- Prefer env names that are useful across projects: `LINEAR_API_KEY`, `LINEAR_TEAM_ID`, `LINEAR_CACHE_ROOT`.
+- [Linear](https://linear.app/)
+- [Pi coding agent](https://github.com/mariozechner/pi-coding-agent)

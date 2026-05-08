@@ -3,37 +3,52 @@
 [![npm version](https://img.shields.io/npm/v/linear-cache-mcp)](https://www.npmjs.com/package/linear-cache-mcp)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
-A cache-first Model Context Protocol (MCP) server for Linear, designed for coding agents that need fast Linear context without burning through API request budgets.
+A cache-first MCP server for [Linear](https://linear.app/) that lets coding agents read from a local JSON cache instead of burning through API request budgets on every query.
 
-## Packages
+## What it does
 
-- `packages/linear-cache-mcp` — the main MCP server.
-- `packages/pi-linear-cache-extension` — optional Pi coding agent extension for UX/guardrails.
-- `skills/linear-ops` — generic Agent Skill template for Linear workflows.
+- **13 MCP tools** — search, read, create, update, and comment on Linear issues and projects
+- **Local JSON cache** — fast planning reads with zero API cost
+- **Request budget tracking** — prevents accidentally blowing through Linear's API rate limits
+- **Write-through safety** — live-fetches entities before mutating, patches cache after writes
+- **Project-first model** — issues live inside projects; projects hold durable context
 
-## Core ideas
+## Why cache-first?
 
-- Serve broad reads from a local cache when fresh.
-- Keep Linear as the source of truth.
-- Live-fetch before every mutation.
-- Patch the local cache after writes.
-- Track Linear request usage in a local JSONL ledger.
+Linear's API has rate limits. Coding agents that query Linear directly for every context read can exhaust them quickly. This server maintains a local mirror of your team's issues and projects, serves reads from cache when fresh, and only hits the Linear API for writes or when the cache is stale.
 
 ## Quick start
 
 ```bash
+npx linear-cache-mcp
+```
+
+Or for development:
+
+```bash
 cd packages/linear-cache-mcp
 npm install
-cp .env.example .env
-# edit .env and add LINEAR_API_KEY
+cp .env.example .env  # add your LINEAR_API_KEY
 npm test
-npm run smoke
 npm start
 ```
 
-## Security
+Full setup instructions are in the [package README](./packages/linear-cache-mcp/README.md), including [Pi coding agent integration](./packages/linear-cache-mcp/README.md#pi-coding-agent-setup).
 
-Never commit `.env`, API keys, cache snapshots, or request ledgers. This repo includes `.env.example` only.
+## Structure
+
+| Path | Purpose |
+|------|---------|
+| `packages/linear-cache-mcp/` | MCP server |
+| `skills/linear-ops/` | Agent skill template for Linear workflows |
+| `examples/pi-project/` | Ready-to-copy configs for Pi projects |
+| `examples/generic-project/` | Generic MCP client config template |
+
+## Links
+
+- **npm:** [linear-cache-mcp](https://www.npmjs.com/package/linear-cache-mcp)
+- **Linear:** [linear.app](https://linear.app/)
+- **Pi:** [pi-coding-agent](https://github.com/mariozechner/pi-coding-agent)
 
 ## License
 
